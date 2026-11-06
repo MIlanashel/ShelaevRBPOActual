@@ -16,7 +16,10 @@ import java.util.Map;
 public class MoneyAccountService {
     private static final String VIEW = "SELECT a.*, a.initial_balance + " +
             "COALESCE((SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) " +
-            "FROM financial_transactions t WHERE t.account_id = a.id AND t.posted = TRUE), 0) AS current_balance " +
+            "FROM financial_transactions t WHERE t.account_id = a.id AND t.posted = TRUE), 0) " +
+            "+ COALESCE((SELECT SUM(x.amount) FROM account_transfers x WHERE x.to_account_id = a.id), 0) " +
+            "- COALESCE((SELECT SUM(x.amount) FROM account_transfers x WHERE x.from_account_id = a.id), 0) " +
+            "AS current_balance " +
             "FROM money_accounts a";
     private final BudgetRepository repository;
     private final FacadeMapper mapper;

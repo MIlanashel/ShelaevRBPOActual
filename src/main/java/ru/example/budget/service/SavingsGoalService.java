@@ -63,6 +63,9 @@ public class SavingsGoalService {
                 Fields.decimal(data, "targetAmount", null, true),
                 validStatus(Fields.string(data, "status", "ACTIVE")));
         validate(entity);
+        if ("COMPLETED".equals(entity.status)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Цель завершается отдельной бизнес-операцией");
+        }
         return one(repository.insert("INSERT INTO savings_goals(owner_id, account_id, name, target_amount, status) " +
                         "VALUES (?, ?, ?, ?, ?)", entity.ownerId, entity.accountId, entity.name,
                 entity.targetAmount, entity.status));
@@ -81,6 +84,18 @@ public class SavingsGoalService {
         if (entity.ownerId != ((Number) existing.get("owner_id")).longValue()
                 || entity.accountId != ((Number) existing.get("account_id")).longValue()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Смена владельца или счёта цели запрещена");
+        }
+        validate(entity);
+        java.math.BigDecimal saved = repository.sum("SELECT COALESCE(SUM(amount),0) FROM financial_transactions " +
+                "WHERE goal_id=? AND posted=TRUE", id);
+        if (entity.targetAmount.compareTo(saved) < 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "Целевая сумма не может быть меньше накопленной");
+        }
+        if ("COMPLETED".equals(entity.status) && !"COMPLETED".equals(existing.get("status"))) {
+            throw new ApiException(HttpStatus.CONFLICT, "Цель завершается отдельной бизнес-операцией");
+        }
+        if ("COMPLETED".equals(existing.get("status")) && !"COMPLETED".equals(entity.status)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Завершённую цель нельзя снова открыть");
         }
         validate(entity);
         repository.update("UPDATE savings_goals SET name = ?, target_amount = ?, status = ? WHERE id = ?",

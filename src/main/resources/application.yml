@@ -2,18 +2,18 @@ server:
   port: 8081
 
 spring:
+  application:
+    name: "${STUDENT_ID:student-id-here}"
   datasource:
-    url: jdbc:h2:file:./data/personal_budget;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_ON_EXIT=FALSE
+    url: ${DB_URL:jdbc:h2:file:./data/personal_budget;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_ON_EXIT=FALSE}
     driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    username: ${DB_USER:budget_app}
+    password: ${DB_PASSWORD}
   sql:
     init:
-      mode: always
-  application:
-    name: "1БИБ23418"
+      mode: never
 
 application:
-  title: Personal Budget API
+  title: Personal Budget API - Lab 3
   currency: RUB
   serverTimeZone: UTC
